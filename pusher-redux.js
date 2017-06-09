@@ -5,7 +5,7 @@
 // on the one hand having global state is ugly, on the other it is easier to use it from anywhere
 var config = {
   socket: null,
-  store: null,
+  stores: [],
   apiKey: null,
   options: {},
   subscriptions: {},
@@ -57,7 +57,7 @@ module.exports.configurePusher = function (store, apiKey) {
   var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
   config.socket = new config.PusherClient(apiKey, options);
-  config.store = store;
+  config.stores.push(store);
   config.apiKey = apiKey;
   config.socket.connection.bind('connected', successfullyConnected);
 };
@@ -65,7 +65,7 @@ module.exports.configurePusher = function (store, apiKey) {
 module.exports.delayConfiguration = function (store, apiKey) {
   var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
-  config.store = store;
+  config.stores.push(store);
   config.apiKey = apiKey;
   Object.assign(config.options, options);
 };
@@ -90,7 +90,9 @@ module.exports.subscribe = function (channelName, eventName, actionType) {
     var eventSubs = channelSubs[eventName];
     if (!eventSubs[actionType]) {
       eventSubs[actionType] = function (data) {
-        config.store.dispatch(pusherAction({ actionType: actionType, channelName: channelName, eventName: eventName, data: data }));
+        config.stores.map(function(store) {
+          store.dispatch(pusherAction({ actionType: actionType, channelName: channelName, eventName: eventName, data: data }));
+        })
       };
       channel.bind(eventName, eventSubs[actionType]);
     }
